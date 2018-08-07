@@ -10,6 +10,7 @@ import com.codingmankk.www.gsonpro.Entity.Category;
 import com.codingmankk.www.gsonpro.Entity.Result;
 import com.codingmankk.www.gsonpro.Entity.SinceUntilSample;
 import com.codingmankk.www.gsonpro.Entity.User;
+import com.codingmankk.www.gsonpro.Entity.UserJsonAdapter;
 import com.codingmankk.www.gsonpro.Entity.UserNoAnnotation;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
@@ -17,6 +18,13 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.FieldNamingStrategy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.orhanobut.logger.Logger;
@@ -61,10 +69,11 @@ public class MainActivity extends AppCompatActivity {
 //        versionFilterGson(-1);
 //        AuthorityFilterGson();
 //        strategyFilterGson();
-        DefaultStringMappingGson();
-
-
-
+//        DefaultStringMappingGson();
+//        TypeAdapterGson();
+//        JsonDeserializerGson();
+//        JsonSerializerGson();
+        JsonAdapterGson();
 
         }
 
@@ -465,10 +474,86 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * [11] TypeAdapter:用于接管某种类型的序列化/反序列化过程
+     *
+     * TypeAdapter 以及 JsonSerializer 和 JsonDeserializer 都需要与GsonBuilder.registerTypeAdapter
+     * 或 GsonBuilder.registerTypeHierarchyAdapter 配合使用
+     */
 
+    private void TypeAdapterGson(){
+        User user = new User("CodingManKK", 100);
+        user.emailAddress = "CodingManKK@123.com";
 
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(User.class, new UserTypeAdapter())
+                .create();
+        String s = gson.toJson(user);
+        Logger.i(s);  // {"name":"CodingManKK","age":100,"email":"CodingManKK@123.com"}
+    }
 
+    /**
+     * [12]只接管-反-序列化
+     */
+    private void JsonDeserializerGson(){
+        Gson gson = new GsonBuilder().registerTypeAdapter(Integer.class, new JsonDeserializer<Integer>() {
+            @Override
+            public Integer deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 
+                try {
+//               return json.getAsString();
+                    return json.getAsInt();
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                    return -1;
+                }
+            }
+        }).create();
 
+        Logger.i(gson.toJson(100));  //100
+        Logger.i(String.valueOf(gson.fromJson("\"\"",Integer.class))); //-1
+
+    }
+
+    /**
+     * [13] 只管序列化
+     */
+    private void JsonSerializerGson(){
+        JsonSerializer<Number> js = new JsonSerializer<Number>() {
+            @Override
+            public JsonElement serialize(Number src, Type typeOfSrc, JsonSerializationContext context) {
+//                return null;
+                return new JsonPrimitive(String.valueOf(src));
+            }
+        };
+
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Integer.class, js)
+                .registerTypeAdapter(Long.class, js)
+                .registerTypeAdapter(Float.class, js)
+                .registerTypeAdapter(Double.class, js)
+                .create();
+
+        Gson gson1 = new GsonBuilder()
+                .registerTypeHierarchyAdapter(Number.class,js)
+                .create();
+
+//        Logger.i(gson.toJson(100.0f)); //"100.0" --转化为了字符串
+//        Logger.i(gson.toJson(99.892)); //"99.892" --转化为了字符串
+
+        Logger.i(gson1.toJson(100.0f)); //"100.0" --转化为了字符串
+        Logger.i(gson1.toJson(99.892)); //"99.892" --转化为了字符串
+    }
+
+    /**
+     * [14] 注解@JsonAdapter的使用
+     */
+
+    private void JsonAdapterGson(){
+        Gson gson = new Gson();
+        //{"name":"小明","age":38,"email":"xiaoming@123.com"}
+        UserJsonAdapter user = new UserJsonAdapter("小明", 38, "xiaoming@123.com");
+        Logger.i(gson.toJson(user));
+    }
 
 }
