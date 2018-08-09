@@ -1,7 +1,5 @@
 package com.codingmankk.www.gsonpro.Entity;
 
-import com.google.gson.annotations.SerializedName;
-
 /**
  * ================================================
  * 版    本：
@@ -14,7 +12,7 @@ public class User {
 
     public String name;
     public int age;
-    @SerializedName(value = "emailAddress",alternate = {"email_address","email"})
+//    @SerializedName(value = "emailAddress",alternate = {"email_address","email"})
     public String emailAddress;
 
     public User(String name, int age, String emailAddress) {

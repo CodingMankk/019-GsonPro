@@ -18,6 +18,7 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.FieldNamingStrategy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -25,16 +26,21 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.orhanobut.logger.Logger;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -73,9 +79,12 @@ public class MainActivity extends AppCompatActivity {
 //        TypeAdapterGson();
 //        JsonDeserializerGson();
 //        JsonSerializerGson();
-        JsonAdapterGson();
+//        JsonAdapterGson();
+//        WithTypeGson();
+        GenericPackageGson();
 
-        }
+    }
+
 
     /**
      * [1]解析-->基本数据类型的解析
@@ -234,11 +243,11 @@ public class MainActivity extends AppCompatActivity {
     /**
      * [7]流式反序列化
      */
-    private void GenerateJsonString(){
+    private void GenerateJsonString() {
         User user = new User("CodingManKK", 24, "CodingManKK@998.com");
         Gson gson = new Gson();
         //自动流式反序列化
-        gson.toJson(user,System.out);// {"age":24,"emailAddress":"CodingManKK@998.com","name":"OzTaking"}
+        gson.toJson(user, System.out);// {"age":24,"emailAddress":"CodingManKK@998.com","name":"OzTaking"}
 
         Logger.i("---------------------");
 
@@ -261,13 +270,13 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [8-1]使用GsonBuilder 导出null值
-     *
+     * <p>
      * Gson在默认情况下是不自动导出值为null的键
-     *
+     * <p>
      * email 字段是没有在json中出现的，当我们在调试是、需要导出完整的json串时或API接中要求没有值必须用Null时，就会比较有用
      */
 
-    private void GsonBuilder2Null(){
+    private void GsonBuilder2Null() {
         User user = new User("CodingManKK", 24);
         Gson gson = new Gson();
         Logger.i(gson.toJson(user));//{"age":24,"name":"CodingManKK"} --不打印邮件地址为null
@@ -285,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
      * [8-2]使用GsonBuilder格式化输出、日期时间
      */
 
-    private void GsonBuilder2FormatData(){
+    private void GsonBuilder2FormatData() {
 
         Gson gson = new GsonBuilder()
                 .serializeNulls() //序列化null
@@ -336,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * [9-1]字段过滤：Expose-查看Category类中的注解
      */
-    private void annotationExposeFilterGson(){
+    private void annotationExposeFilterGson() {
 
         String jsonString = "{ \"id\": 1,\"name\": \"电脑\",\"children\": [ {\"id\": 100,\"name\": \"笔记本\"},{\"id\": 101,\"name\": \"台式机\"}]}";
 
@@ -350,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
         List<Category> children = category.getChildren();
         int size = children.size();
         Category categoryChildren;
-        for (int i=0; i<size; i++){
+        for (int i = 0; i < size; i++) {
             categoryChildren = children.get(i);
             Logger.i(String.valueOf(categoryChildren.getId())); //100--笔记本 //101-台式机
             Logger.i(categoryChildren.getName());
@@ -359,12 +368,12 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [9-2]基与版本的字段过滤
-     *
+     * <p>
      * Gson在对基于版本的字段导出提供了两个注解 @Since 和 @Until ,和
      * GsonBuilder.setVersion(Double) 配合使用。 @Since 和 @Until 都接收一个 Double 值。
      */
 
-    private void versionFilterGson(double version){
+    private void versionFilterGson(double version) {
 
         SinceUntilSample sinceUntilSample = new SinceUntilSample();
         sinceUntilSample.since = "Since";
@@ -382,7 +391,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [9-3]基于访问权限修饰符过滤
-     *
+     * <p>
      * final String finalFiled = "final";  *
      * static String staticFiled = "static";  *
      * public String publicFiled = "public";
@@ -391,7 +400,7 @@ public class MainActivity extends AppCompatActivity {
      * private String privateFiled = "private";  *
      */
 
-    private void AuthorityFilterGson(){
+    private void AuthorityFilterGson() {
         Gson gson = new GsonBuilder()  //排除了final、static、private
                 .excludeFieldsWithModifiers(Modifier.FINAL, Modifier.STATIC, Modifier.PRIVATE)
                 .create();
@@ -405,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * [9-4] 基于策略过滤, 序列化为例
      */
-    private void strategyFilterGson(){
+    private void strategyFilterGson() {
         Gson gson = new GsonBuilder()
                 .addSerializationExclusionStrategy(new ExclusionStrategy() {
                     @Override
@@ -442,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
      * [10-1]-字段映射规则--默认实现：输出的key的大小写格式不一样
      */
 
-    private void DefaultStringMappingGson(){
+    private void DefaultStringMappingGson() {
         UserNoAnnotation user = new UserNoAnnotation("CodingManKK", 18);
         user.emailAddress = "CodingMankk@123.com";
 
@@ -462,7 +471,7 @@ public class MainActivity extends AppCompatActivity {
      * [10-2]-字段映射--自定义映射
      * 注意：@SerializedName 注解拥有最高优先级，在加有 @SerializedName 注解的字段上 FieldNamingStrategy 不生效！确实是！
      */
-    private void CustomStringMappingGson(){
+    private void CustomStringMappingGson() {
         new GsonBuilder()
                 .setFieldNamingStrategy(new FieldNamingStrategy() {
                     @Override
@@ -476,12 +485,12 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [11] TypeAdapter:用于接管某种类型的序列化/反序列化过程
-     *
+     * <p>
      * TypeAdapter 以及 JsonSerializer 和 JsonDeserializer 都需要与GsonBuilder.registerTypeAdapter
      * 或 GsonBuilder.registerTypeHierarchyAdapter 配合使用
      */
 
-    private void TypeAdapterGson(){
+    private void TypeAdapterGson() {
         User user = new User("CodingManKK", 100);
         user.emailAddress = "CodingManKK@123.com";
 
@@ -495,7 +504,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * [12]只接管-反-序列化
      */
-    private void JsonDeserializerGson(){
+    private void JsonDeserializerGson() {
         Gson gson = new GsonBuilder().registerTypeAdapter(Integer.class, new JsonDeserializer<Integer>() {
             @Override
             public Integer deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
@@ -511,14 +520,14 @@ public class MainActivity extends AppCompatActivity {
         }).create();
 
         Logger.i(gson.toJson(100));  //100
-        Logger.i(String.valueOf(gson.fromJson("\"\"",Integer.class))); //-1
+        Logger.i(String.valueOf(gson.fromJson("\"\"", Integer.class))); //-1
 
     }
 
     /**
      * [13] 只管序列化
      */
-    private void JsonSerializerGson(){
+    private void JsonSerializerGson() {
         JsonSerializer<Number> js = new JsonSerializer<Number>() {
             @Override
             public JsonElement serialize(Number src, Type typeOfSrc, JsonSerializationContext context) {
@@ -535,11 +544,11 @@ public class MainActivity extends AppCompatActivity {
                 .create();
 
         Gson gson1 = new GsonBuilder()
-                .registerTypeHierarchyAdapter(Number.class,js)
+                .registerTypeHierarchyAdapter(Number.class, js)
                 .create();
 
-//        Logger.i(gson.toJson(100.0f)); //"100.0" --转化为了字符串
-//        Logger.i(gson.toJson(99.892)); //"99.892" --转化为了字符串
+        Logger.i(gson.toJson(100.0f)); //"100.0" --转化为了字符串
+        Logger.i(gson.toJson(99.892)); //"99.892" --转化为了字符串
 
         Logger.i(gson1.toJson(100.0f)); //"100.0" --转化为了字符串
         Logger.i(gson1.toJson(99.892)); //"99.892" --转化为了字符串
@@ -548,12 +557,237 @@ public class MainActivity extends AppCompatActivity {
     /**
      * [14] 注解@JsonAdapter的使用
      */
-
-    private void JsonAdapterGson(){
+    private void JsonAdapterGson() {
         Gson gson = new Gson();
         //{"name":"小明","age":38,"email":"xiaoming@123.com"}
         UserJsonAdapter user = new UserJsonAdapter("小明", 38, "xiaoming@123.com");
         Logger.i(gson.toJson(user));
     }
+
+
+    /**
+     * [15]-如果一个被序列化的对象本身就带有泛型，且注册了相应的 TypeAdapter ，那么必须调用 Gson.toJson(Object,Type) ，明确告诉Gson对象的类型
+     * ????问：list该怎么接管呢？？？
+     */
+    private void WithTypeGson() {
+        Type type = new TypeToken<List<User>>() {
+        }.getType();
+
+        ArrayList<User> list = new ArrayList<>();
+        list.add(new User("aaa", 1));
+        list.add(new User("bbb", 2));
+
+        TypeAdapter<List<User>> typeAdapter = new TypeAdapter<List<User>>() {
+            @Override
+            public void write(com.google.gson.stream.JsonWriter out, List<User> value) throws IOException {
+
+                out.beginArray();
+                int size = value.size();
+                for (int i = 0; i < size; i++) {
+                    out.name("name").value(value.get(i).name);
+                    out.name("age").value(value.get(i).age);
+                    out.name("email").value(value.get(i).emailAddress);
+                }
+
+                out.endArray();
+            }
+
+            @Override
+            public List<User> read(com.google.gson.stream.JsonReader in) throws IOException {
+                List<User> lists = new ArrayList<>();
+                User user = new User();
+                in.beginObject();
+                while (in.hasNext()) {
+                    switch (in.nextName()) {
+                        case "name":
+                            user.name = in.nextString();
+                            break;
+                        case "age":
+                            user.age = in.nextInt();
+                            break;
+                        case "email":
+                        case "email_address":
+                        case "emailAddress":
+//                            user.email = in.nextString();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                in.endObject();
+                lists.add(user);
+                return lists;
+            }
+        };
+
+        Gson gson = new GsonBuilder().registerTypeAdapter(type, typeAdapter)
+                .create();
+
+        //注意，多了type参数
+        String s = gson.toJson(list, type);
+        Logger.i("1111111");
+        Logger.i(s);
+    }
+
+    /**
+     * [16][实例]服务器返回的数据中data字段类型不固定，比如请求成功data是一个List,不成功的时候是String类型，
+     * 这样前端在使用泛型解析的时候，怎么去处理呢？
+     */
+    private void interfaceGson() {
+        //方案1
+        Gson gson = new GsonBuilder().registerTypeHierarchyAdapter(List.class, new JsonDeserializer<List<?>>() {
+            @Override
+            public List<?> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                if (json.isJsonArray()) {
+                    Gson gson = new Gson();
+                    return gson.fromJson(json, typeOfT);
+                } else {
+                    return Collections.EMPTY_LIST;
+                }
+            }
+        }).create();
+        //方案2
+        Gson gson1 = new GsonBuilder()
+                .registerTypeHierarchyAdapter(List.class, new JsonDeserializer<List<?>>() {
+
+                    @Override
+                    public List<?> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                        if (json.isJsonArray()) {
+                            JsonArray asJsonArray = json.getAsJsonArray();
+                            Type itemType = ((ParameterizedType) typeOfT).getActualTypeArguments()[0];
+                            List list = new ArrayList<>();
+                            int size = list.size();
+                            for (int i = 0; i < size; i++) {
+                                JsonElement jsonElement = asJsonArray.get(i);
+                                Object deserialize = context.deserialize(jsonElement, itemType);
+                                list.add(deserialize);
+                            }
+                            return list;
+                        } else {
+                            return Collections.EMPTY_LIST;
+                        }
+                    }
+                }).create();
+    }
+
+
+    // 以下部分内容参考：https://www.jianshu.com/p/d62c2be60617
+
+    /*  data 为 object 的情况
+    {"code":"0","message":"success","data":{}}
+     data 为 array 的情况
+    {"code":"0","message":"success","data":[]}*/
+
+    /**
+     * [17-1]处理 data 为 object 的情况
+     */
+    public static <T> Result<T> fromJsonObject(Reader reader, Class<T> clazz) {
+        Type type = new ParameterizedTypeImpl(Result.class, new Class[]{clazz});
+        Gson gson = new Gson();
+        return gson.fromJson(reader, type);
+    }
+
+    /**
+     * [17-2] 解析data是array的情况
+     */
+ /*   public static <T> Result<List<T>> fromJsonArray(Reader reader, Class<T> clazz) {
+//    public static <T> Result<List<T>> fromJsonArray(String jsonObject, Class<T> clazz) {
+        // 生成List<T> 中的 List<T>
+        Type listType = new ParameterizedTypeImpl(List.class, new Class[]{clazz});
+        // 根据List<T>生成完整的Result<List<T>>
+        Type type = new ParameterizedTypeImpl(Result.class, new Type[]{listType});
+        Gson gson = new Gson();
+        return gson.fromJson(jsonObject, type);
+    }*/
+
+
+    public static <T> Result<List<T>> fromJsonArray(Reader reader, Class<T> clazz) {
+        // 生成List<T> 中的 List<T>
+        Type listType = new ParameterizedTypeImpl(List.class, new Class[]{clazz});
+        // 根据List<T>生成完整的Result<List<T>>
+        Type type = new ParameterizedTypeImpl(Result.class, new Type[]{listType});
+        return new Gson().fromJson(reader, type);
+    }
+
+
+    private void GenericPackageGson() {
+     /* {
+            "code": 123,
+                "message": "msg",
+                "data": {
+                    "name": "怪盗kidou",
+                    "age": 24,
+                    "emailAddress": "ikidou_1@example.com",
+                    "email": "ikidou_2@example.com",
+                    "email_address": "ikidou_3@example.com"
+          }
+        }*/
+        String jsonstring =
+                "{" + "\"code\":\"123\",\"message\":\"msg\",\"data\":{\"name\":\"怪盗kidou\",\"age\":24,\"emailAddress\":\"ikidou_1@example.com\",\"email\":\"ikidou_2@example.com\",\"email_address\":\"ikidou_3@example.com\"}}";
+        Result<User> r = fromJsonObject(new StringReader(jsonstring), User.class);
+        System.out.println(r.data.name + "; " + r.data.age + "; " + r.data.emailAddress); //怪盗kidou; 24; ikidou_3@example.com
+
+      /*  {
+            "code": 123,
+                "message": "msg ",
+                "data": [{
+                        "name ": "怪盗 kidou ",
+                        "age": "24",
+                        "emailAddress": "ikidou_1 @example.com ",
+                        "email ": "ikidou_2 @exmple.com ",
+                        "email_address ": "ikidou_3 @example.com"
+                        }]
+        }*/
+
+
+        String jsonlist = "{" +
+                "            \"code\": 123," +
+                "                \"message\": \"msg \"," +
+                "                \"data\": [" +
+                "{" +
+                "                        \"name \": \"小明 \"," +
+                "                        \"age\": \"10086\"," +
+                "                        \"emailAddress\": \"小明@example.com \"," +
+                "                        \"email \": \"小明@exmple.com \"," +
+                "                        \"email_address \": \"小明@example.com\"" +
+                "                        }]" +
+                "        }";
+
+        Result<List<User>> listResult = fromJsonArray(new StringReader(jsonlist), User.class);
+        Logger.i(String.valueOf(listResult.code)); //123
+        Logger.i(listResult.message); //msg
+        List<User> lists = listResult.data;
+        for (User u : lists) {
+            Logger.i(u.name + "; " + u.age + "; " + u.emailAddress);
+        }//null; 24; ikidou_1 @example.com
+
+        int size = lists.size();
+        for (int i=0 ;i < size; i++){
+            User user = lists.get(i);
+//            Logger.i(user.getName()+user.getAge()+user.getEmailAddress());
+            Logger.i("姓名："+user.name+":"+user.age+":"+user.getEmailAddress());
+            //null:10086:小明@example.com
+        }
+
+
+        String jsonList = "{ \"code\": 123, \"message\": \"msg \",\"data\": [{\"name \": \"小红\",\"age\": \"38\",\"emailAddress\": \"小红@example.com \"}]}";
+        Result<List<User>> listResult1 = fromJsonArray(new StringReader(jsonList), User.class);
+        Logger.i(String.valueOf(listResult1.code)); //123
+        Logger.i(listResult1.message); //msg
+        List<User> lists1 = listResult1.data;
+        /*for (User u : lists) {
+            Logger.i(u.name + "; " + u.age + "; " + u.emailAddress);
+        }*///null; 24; ikidou_1 @example.com
+
+        int size1 = lists1.size();
+        for (int i=0 ;i < size1; i++){
+            User user = lists1.get(i);
+//            Logger.i(user.getName()+user.getAge()+user.getEmailAddress());
+            Logger.i("姓名："+user.name+":"+user.age+":"+user.getEmailAddress());
+            //null:10086:小明@example.com
+        }
+
+    }
+
 
 }
